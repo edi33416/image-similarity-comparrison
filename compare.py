@@ -1,61 +1,16 @@
-import numpy as np
-import cv2 as cv
 import argparse
-import sys
 import os
+import pickle
+import sys
+
+import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
+
 from collections import OrderedDict
 
-# Compute PSNR from two images
-# https://docs.opencv.org/master/d5/dc4/tutorial_video_input_psnr_ssim.html
-def get_psnr(I1, I2):
-    s1 = cv.absdiff(I1, I2) #|I1 - I2|
-    s1 = np.float32(s1)     # cannot make a square on 8 bits
-    s1 = s1 * s1            # |I1 - I2|^2
-    sse = s1.sum()          # sum elements per channel
-    if sse <= 1e-10:        # sum channels
-        return 0            # for small values return zero
-    else:
-        shape = I1.shape
-        mse = 1.0 * sse / (shape[0] * shape[1] * shape[2])
-        psnr = 10.0 * np.log10((255 * 255) / mse)
-        return psnr
-
-# Compute MSSISM from two images
-# https://docs.opencv.org/master/d5/dc4/tutorial_video_input_psnr_ssim.html
-def get_mssism(i1, i2):
-    C1 = 6.5025
-    C2 = 58.5225
-    # INITS
-    I1 = np.float32(i1) # cannot calculate on one byte large values
-    I2 = np.float32(i2)
-    I2_2 = I2 * I2 # I2^2
-    I1_2 = I1 * I1 # I1^2
-    I1_I2 = I1 * I2 # I1 * I2
-    # END INITS
-    # PRELIMINARY COMPUTING
-    mu1 = cv.GaussianBlur(I1, (11, 11), 1.5)
-    mu2 = cv.GaussianBlur(I2, (11, 11), 1.5)
-    mu1_2 = mu1 * mu1
-    mu2_2 = mu2 * mu2
-    mu1_mu2 = mu1 * mu2
-    sigma1_2 = cv.GaussianBlur(I1_2, (11, 11), 1.5)
-    sigma1_2 -= mu1_2
-    sigma2_2 = cv.GaussianBlur(I2_2, (11, 11), 1.5)
-    sigma2_2 -= mu2_2
-    sigma12 = cv.GaussianBlur(I1_I2, (11, 11), 1.5)
-    sigma12 -= mu1_mu2
-    t1 = 2 * mu1_mu2 + C1
-    t2 = 2 * sigma12 + C2
-    t3 = t1 * t2                    # t3 = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))
-    t1 = mu1_2 + mu2_2 + C1
-    t2 = sigma1_2 + sigma2_2 + C2
-    t1 = t1 * t2                    # t1 =((mu1_2 + mu2_2 + C1).*(sigma1_2 + sigma2_2 + C2))
-    ssim_map = cv.divide(t3, t1)    # ssim_map =  t3./t1;
-    mssim = cv.mean(ssim_map)       # mssim = average of ssim map
-    return mssim
+from skimage import io, img_as_float
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 def get_raw_filename(filename):
     base_filename = os.path.basename(filename)
@@ -93,21 +48,20 @@ def get_results(ground_truth, results_dirs):
     labels = []
     for i in comp_dict:
         labels.append(i)
-        gt = cv.imread(comp_dict[i]['gt'])
+        gt = io.imread(comp_dict[i]['gt'])
         for comp in comp_dict[i]["comp"]:
             if comp["method_name"] not in methods:
                 methods.append(comp["method_name"])
 
-            img = cv.imread(comp['path'])
+            img = io.imread(comp['path'])
 
             if comp["method_name"] not in psnr_result:
                 psnr_result[comp["method_name"]] = []
-            psnr_result[comp["method_name"]].append(get_psnr(gt, img))
+            psnr_result[comp["method_name"]].append(peak_signal_noise_ratio(gt, img))
 
             if comp["method_name"] not in mssism_result:
                 mssism_result[comp["method_name"]] = []
-            r, g, b, _ = get_mssism(gt, img)
-            mssism_result[comp["method_name"]].append((r + g + b) / 3)
+            mssism_result[comp["method_name"]].append(structural_similarity(gt, img, multichannel=True))
 
     r = {}
     r["psnr_result"] = psnr_result
