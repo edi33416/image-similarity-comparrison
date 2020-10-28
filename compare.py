@@ -188,14 +188,14 @@ def main():
             methods = methods,
             xlabel = "Input Image Index",
             ylabel = "PSNR Score",
-            fig_title = "PSNR - Lower is better",
+            fig_title = "PSNR - Higher is better",
             fig_name = "psnr-median-comparison.png")
 
     plot_result(result = psnr_result,
             methods = methods,
             xlabel = "Input Image Index",
             ylabel = "PSNR Score",
-            fig_title = "PSNR - Lower is better",
+            fig_title = "PSNR - Higher is better",
             fig_name = "psnr-mean-comparison.png",
             with_mean = True)
 
@@ -203,7 +203,7 @@ def main():
             methods = methods,
             xlabel = "Input Image Index",
             ylabel = "PSNR Score",
-            fig_title = f"PSNR - {slice_size} Imgs - Lower is better",
+            fig_title = f"PSNR - {slice_size} Imgs - Higher is better",
             fig_name = f"psnr-{slice_size}-median-comparison.png",
             slice_size = slice_size)
 
@@ -211,7 +211,7 @@ def main():
             methods = methods,
             xlabel = "Input Image Index",
             ylabel = "PSNR Score",
-            fig_title = f"PSNR - {slice_size} Imgs - Lower is better",
+            fig_title = f"PSNR - {slice_size} Imgs - Higher is better",
             fig_name = f"psnr-{slice_size}-mean-comparison.png",
             slice_size = slice_size,
             with_mean = True)
