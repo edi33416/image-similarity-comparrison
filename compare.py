@@ -4,6 +4,7 @@ import pickle
 import sys
 
 import cv2 as cv
+import imquality.brisque as brisque
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -44,6 +45,7 @@ def get_results(ground_truth, results_dirs):
 
     psnr_result = {}
     mssism_result = {}
+    brisque_result = {}
     methods = []
     labels = []
     for i in comp_dict:
@@ -63,9 +65,14 @@ def get_results(ground_truth, results_dirs):
                 mssism_result[comp["method_name"]] = []
             mssism_result[comp["method_name"]].append(structural_similarity(gt, img, multichannel=True))
 
+            if comp["method_name"] not in brisque_result:
+                brisque_result[comp["method_name"]] = []
+            brisque_result[comp["method_name"]].append(brisque.score(img))
+
     r = {}
     r["psnr_result"] = psnr_result
     r["mssism_result"] = mssism_result
+    r["brisque_result"] = brisque_result
     r["methods"] = methods
     r["labels"] = labels
 
@@ -148,6 +155,7 @@ def main():
     r = get_results(args.ground_truth, args.results)
     psnr_result = r["psnr_result"]
     mssism_result = r["mssism_result"]
+    brisque_result = r["brisque_result"]
     methods = r["methods"]
     labels = r["labels"]
 
@@ -216,6 +224,38 @@ def main():
             ylabel = "MSSISM Score",
             fig_title = f"MSSISM - {slice_size} Imgs - Higher is better",
             fig_name = f"mssism-{slice_size}-mean-comparison.png",
+            slice_size = slice_size,
+            with_mean = True)
+
+    plot_result(result = brisque_result,
+            methods = methods,
+            xlabel = "Input Image Index",
+            ylabel = "BRISQUE Score",
+            fig_title = "BRISQUE - Lower is better",
+            fig_name = "brisque-median-comparison.png")
+
+    plot_result(result = brisque_result,
+            methods = methods,
+            xlabel = "Input Image Index",
+            ylabel = "BRISQUE Score",
+            fig_title = "BRISQUE - Lower is better",
+            fig_name = "brisque-mean-comparison.png",
+            with_mean = True)
+
+    plot_result(result = brisque_result,
+            methods = methods,
+            xlabel = "Input Image Index",
+            ylabel = "BRISQUE Score",
+            fig_title = f"BRISQUE - {slice_size} Imgs - Lower is better",
+            fig_name = f"brisque-{slice_size}-median-comparison.png",
+            slice_size = slice_size)
+
+    plot_result(result = brisque_result,
+            methods = methods,
+            xlabel = "Input Image Index",
+            ylabel = "BRISQUE Score",
+            fig_title = f"BRISQUE - {slice_size} Imgs - Lower is better",
+            fig_name = f"brisque-{slice_size}-mean-comparison.png",
             slice_size = slice_size,
             with_mean = True)
 
