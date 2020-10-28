@@ -6,8 +6,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-
-
+from collections import OrderedDict
 
 # Compute PSNR from two images
 # https://docs.opencv.org/master/d5/dc4/tutorial_video_input_psnr_ssim.html
@@ -132,18 +131,34 @@ def plot_result(result, methods, xlabel, ylabel, fig_title, fig_name,
         #p = plt.plot(result[m][:slice_size], 'o', label = m, markersize = 5)
         p = plt.plot(result[m][:slice_size], 'o', label = m)
 
+        mean_val = np.mean(result[m][:slice_size])
+        res_mean = [mean_val for x in result[m][:slice_size]]
         if with_mean:
-            mean_val = np.mean(result[m][:slice_size])
-            res_mean = [mean_val for x in result[m][:slice_size]]
-            plt.plot(res_mean, color = p[0].get_color(), label = f"{m} mean value = {mean_val:.2f}")
+            #mean_val = np.mean(result[m][:slice_size])
+            #res_mean = [mean_val for x in result[m][:slice_size]]
+            plt.plot(res_mean, color = p[0].get_color(),
+                    label = f"{m} mean value = {mean_val:.2f}", ls = '--')
+
+            std = np.std(result[m][:slice_size])
+            plt.plot([x + std for x in res_mean], color = p[0].get_color(), label = f"{m} std dev value = {std:.2f}")
+            plt.plot([x - std for x in res_mean], color = p[0].get_color(), label = f"{m} std dev value = {std:.2f}")
+
         else:
             res_median_hlp = [x for x in result[m][:slice_size]]
             res_median_hlp.sort()
             median_val = res_median_hlp[int(len(res_median_hlp) / 2)]
             res_median = [median_val for x in res_median_hlp]
-            plt.plot(res_median, color = p[0].get_color(), label = f"{m} median value = {median_val:.2f}")
+            plt.plot(res_median, color = p[0].get_color(), label = f"{m} median value = {median_val:.2f}", ls = '--')
 
-    lg = plt.legend(bbox_to_anchor=(1.0, 1.0), loc='upper left')
+            std = np.std(result[m][:slice_size])
+            plt.plot([x + std for x in res_mean], color = p[0].get_color(), label = f"{m} std dev value = {std:.2f}")
+            plt.plot([x - std for x in res_mean], color = p[0].get_color(), label = f"{m} std dev value = {std:.2f}")
+
+    # Store legend labels into a dict to avoid label duplications
+    lg_handles, lg_labels = plt.gca().get_legend_handles_labels()
+    by_label = OrderedDict(zip(lg_labels, lg_handles))
+    lg = plt.legend(by_label.values(), by_label.keys(), bbox_to_anchor=(1.0, 1.0), loc='upper left')
+
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
     tt = plt.suptitle(fig_title)
