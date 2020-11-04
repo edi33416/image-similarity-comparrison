@@ -6,4 +6,6 @@ TODOs:
 
 - [ ] Add readme
 - [ ] Add docs
-- [ ] Add req.txt file
+- [x] Add req.txt file
+
+Use `pip install -r requirements.txt` to install dependencies.
