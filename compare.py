@@ -1,4 +1,7 @@
 import argparse
+import concurrent.futures
+import functools
+import itertools
 import os
 import pickle
 import sys
@@ -33,6 +36,7 @@ def get_results(ground_truth, results_dirs):
                 "comp": []
         }
 
+    methods = []
     for res_dir in results_dirs:
         for i in os.listdir(res_dir):
             img_base = "low"
@@ -43,31 +47,43 @@ def get_results(ground_truth, results_dirs):
                 "path": res_dir + "/" + i
             })
 
+            methods.append(res_dir)
+
     psnr_result = {}
     mssism_result = {}
     brisque_result = {}
-    methods = []
     labels = []
-    for i in comp_dict:
-        labels.append(i)
-        gt = io.imread(comp_dict[i]['gt'])
-        for comp in comp_dict[i]["comp"]:
-            if comp["method_name"] not in methods:
-                methods.append(comp["method_name"])
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for i in comp_dict:
+            labels.append(i)
+            gt = io.imread(comp_dict[i]['gt'])
+            imgs = map(lambda x: io.imread(x["path"]), comp_dict[i]["comp"])
+            #imgs = [io.imread(x["path"]) for x in comp_dict[i]["comp"]]
+            imgs_len = len(comp_dict[i]["comp"])
 
-            img = io.imread(comp['path'])
+            # Parallel compute psnr
+            for comp, res in zip(comp_dict[i]["comp"],
+                    executor.map(peak_signal_noise_ratio, itertools.repeat(gt, imgs_len), imgs)):
+                if comp["method_name"] not in psnr_result:
+                    psnr_result[comp["method_name"]] = []
+                psnr_result[comp["method_name"]].append(res)
 
-            if comp["method_name"] not in psnr_result:
-                psnr_result[comp["method_name"]] = []
-            psnr_result[comp["method_name"]].append(peak_signal_noise_ratio(gt, img))
+            # Parallel compute mssism
+            imgs = map(lambda x: io.imread(x["path"]), comp_dict[i]["comp"])
+            map_struct_sim = functools.partial(structural_similarity, multichannel=True)
+            for comp, res in zip(comp_dict[i]["comp"],
+                    executor.map(map_struct_sim, itertools.repeat(gt, imgs_len), imgs)):
+                if comp["method_name"] not in mssism_result:
+                    mssism_result[comp["method_name"]] = []
+                mssism_result[comp["method_name"]].append(res)
 
-            if comp["method_name"] not in mssism_result:
-                mssism_result[comp["method_name"]] = []
-            mssism_result[comp["method_name"]].append(structural_similarity(gt, img, multichannel=True))
-
-            if comp["method_name"] not in brisque_result:
-                brisque_result[comp["method_name"]] = []
-            brisque_result[comp["method_name"]].append(brisque.score(img))
+            # Parallel compute brisque
+            imgs = map(lambda x: io.imread(x["path"]), comp_dict[i]["comp"])
+            for comp, res in zip(comp_dict[i]["comp"],
+                    executor.map(brisque.score, imgs, chunksize=2)):
+                if comp["method_name"] not in brisque_result:
+                    brisque_result[comp["method_name"]] = []
+                brisque_result[comp["method_name"]].append(res)
 
     r = {}
     r["psnr_result"] = psnr_result
